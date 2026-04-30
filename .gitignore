@@ -1,0 +1,22 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+*.pid
+.DS_Store
+.vercel
+.turbo
+.pnpm-store/
+coverage/
+*.local
+tsconfig.tsbuildinfo
+
+# Solana / wallet keys — never commit
+*.json.key
+*-keypair.json
+solana-keypair*
