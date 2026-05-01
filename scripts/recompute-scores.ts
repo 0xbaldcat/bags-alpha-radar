@@ -1,4 +1,5 @@
 import { BagsApi } from "@/lib/bags/client";
+import { recordScoreAlerts } from "@/db/alerts";
 import { computeAndPersistTokenScore, getScorableTokens, loadScoreWeights } from "@/db/scoring";
 
 type CliOptions = {
@@ -49,12 +50,24 @@ async function runOnce(limit: number, concurrency: number) {
   const observedAt = new Date();
   const results = (await runWithConcurrency(tokens, concurrency, async (token) => {
     const holders = await bags.getLargestSystemOwnedHolders(token.mintPk, 100);
-    return computeAndPersistTokenScore({
+    const result = await computeAndPersistTokenScore({
       token,
       holders,
       weights,
       observedAt
     });
+    const alerts = await recordScoreAlerts({
+      mint: result.mint,
+      composite: result.score.composite,
+      previousComposite: result.previousComposite,
+      notes: result.score.notes,
+      triggeredAt: observedAt
+    });
+
+    return {
+      ...result,
+      alerts: alerts.length
+    };
   })).flatMap((result, index) => {
     if (result.status === "fulfilled") {
       return [result.value];
@@ -74,6 +87,7 @@ async function runOnce(limit: number, concurrency: number) {
         symbol: item.symbol,
         composite: item.score.composite,
         holders: item.realHolders,
+        alerts: item.alerts,
         notes: item.score.notes
       }))
   };

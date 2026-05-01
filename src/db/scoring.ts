@@ -106,6 +106,7 @@ export async function persistScore(input: {
   concentration: number;
   smartWallet: number;
   composite: number;
+  notes?: string[];
   computedAt: Date;
 }) {
   const db = createDb();
@@ -113,6 +114,14 @@ export async function persistScore(input: {
   if (!db) {
     throw new Error("DATABASE_URL is required for score persistence");
   }
+
+  const [previous] = await db
+    .select({
+      compositeScore: scores.compositeScore
+    })
+    .from(scores)
+    .where(eq(scores.mintPk, input.mint))
+    .limit(1);
 
   await db
     .insert(scores)
@@ -122,6 +131,7 @@ export async function persistScore(input: {
       concentrationScore: String(input.concentration),
       smartWalletScore: String(input.smartWallet),
       compositeScore: String(input.composite),
+      notesJson: input.notes ?? [],
       computedAt: input.computedAt
     })
     .onConflictDoUpdate({
@@ -131,9 +141,14 @@ export async function persistScore(input: {
         concentrationScore: String(input.concentration),
         smartWalletScore: String(input.smartWallet),
         compositeScore: String(input.composite),
+        notesJson: input.notes ?? [],
         computedAt: input.computedAt
       }
     });
+
+  return {
+    previousComposite: previous ? Number(previous.compositeScore) : null
+  };
 }
 
 export async function computeAndPersistTokenScore(input: {
@@ -160,7 +175,7 @@ export async function computeAndPersistTokenScore(input: {
     now: input.observedAt
   });
 
-  await persistScore({
+  const persisted = await persistScore({
     mint: input.token.mintPk,
     ...score
   });
@@ -170,6 +185,7 @@ export async function computeAndPersistTokenScore(input: {
     symbol: input.token.symbol,
     holdersSeen: input.holders.length,
     realHolders: realHolders.length,
+    previousComposite: persisted.previousComposite,
     score
   };
 }

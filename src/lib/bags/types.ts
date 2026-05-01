@@ -12,6 +12,12 @@ export type BagsToken = {
   score: TokenScore | null;
   source: "launch-feed" | "top-fee-fixture" | "mock";
   status?: "PRE_LAUNCH" | "PRE_GRAD" | "MIGRATING" | "MIGRATED";
+  description?: string | null;
+  twitter?: string | null;
+  website?: string | null;
+  launchSignature?: string | null;
+  dbcPoolKey?: string | null;
+  dbcConfigKey?: string | null;
 };
 
 export type TokenScore = {
@@ -25,7 +31,7 @@ export type BagsTrade = {
   signature: string;
   mint: string;
   buyer: string;
-  side: "buy" | "sell";
+  side: "buy" | "sell" | "claim";
   solAmount: number;
   tokenAmount: number;
   priceUsd: number;
@@ -52,6 +58,22 @@ export type TokenSnapshot = {
   trades: BagsTrade[];
   holders: BagsHolder[];
   wallets: WalletSignal[];
+  holderHistory?: {
+    timestamp: string;
+    holderCount: number;
+  }[];
+  alerts?: {
+    id: number;
+    tier: string;
+    score: number;
+    previousScore: number | null;
+    threshold: number;
+    reason: string;
+    triggeredAt: string;
+  }[];
+  scoreNotes?: string[];
+  scoreComputedAt?: string;
+  dataSource?: "db" | "live";
 };
 
 export type TokenLaunchFeedItem = {

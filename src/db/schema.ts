@@ -73,6 +73,7 @@ export const scores = pgTable("scores", {
   concentrationScore: numeric("concentration_score").notNull(),
   smartWalletScore: numeric("smart_wallet_score").notNull(),
   compositeScore: numeric("composite_score").notNull(),
+  notesJson: jsonb("notes_json").$type<string[]>(),
   computedAt: timestamp("computed_at", { withTimezone: true }).notNull()
 });
 
@@ -107,4 +108,20 @@ export const ingestionRuns = pgTable("ingestion_runs", {
   error: text("error")
 }, (table) => ({
   sourceStartedIdx: index("ingestion_runs_source_started_idx").on(table.source, table.startedAt)
+}));
+
+export const alerts = pgTable("alerts", {
+  id: serial("id").primaryKey(),
+  mintPk: text("mint_pk").notNull().references(() => tokens.mintPk),
+  tier: text("tier").notNull(),
+  compositeScore: numeric("composite_score").notNull(),
+  prevCompositeScore: numeric("prev_composite_score"),
+  threshold: numeric("threshold").notNull(),
+  reason: text("reason").notNull(),
+  notesJson: jsonb("notes_json").$type<string[]>(),
+  triggeredAt: timestamp("triggered_at", { withTimezone: true }).notNull().defaultNow(),
+  deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+  deliveryChannel: text("delivery_channel")
+}, (table) => ({
+  mintTierTimeIdx: index("alerts_mint_tier_time_idx").on(table.mintPk, table.tier, table.triggeredAt)
 }));
