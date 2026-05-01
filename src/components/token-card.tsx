@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { ArrowUpRight, BellRing, Users } from "lucide-react";
 import type { BagsToken } from "@/lib/bags/types";
-import { compactAddress, formatNumber, formatPercent } from "@/lib/utils";
+import { formatNumber, formatPercent, formatTokenSymbol } from "@/lib/utils";
+import { AddressChip } from "./address-chip";
 import { ScoreRing } from "./score-ring";
 
 type TokenCardProps = {
@@ -10,10 +11,7 @@ type TokenCardProps = {
 
 export function TokenCard({ token }: TokenCardProps) {
   return (
-    <Link
-      href={`/tokens/${token.mint}`}
-      className="grid gap-4 border-b border-ink/10 bg-panel/90 p-4 transition hover:bg-white/90 md:grid-cols-[auto_1fr_auto]"
-    >
+    <Link href={`/tokens/${token.mint}`} className="group grid gap-4 border-b border-ink/10 bg-panel/90 p-4 transition hover:bg-white/90 md:grid-cols-[auto_1fr_auto]">
       <img
         src={token.imageUrl}
         alt=""
@@ -21,11 +19,9 @@ export function TokenCard({ token }: TokenCardProps) {
       />
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="truncate text-lg font-semibold">{token.name}</h2>
-          <span className="rounded bg-ink px-2 py-1 text-xs font-semibold text-panel">{token.symbol}</span>
-          <span className="rounded bg-field px-2 py-1 font-mono text-xs font-semibold text-ink">
-            {compactAddress(token.mint, 6)}
-          </span>
+          <h2 className="truncate text-lg font-semibold group-hover:underline">{token.name}</h2>
+          <span className="rounded bg-ink px-2 py-1 text-xs font-semibold text-panel">{formatTokenSymbol(token.symbol)}</span>
+          <AddressChip address={token.mint} chars={6} />
           {token.status ? (
             <span className="rounded border border-ink/10 px-2 py-1 text-xs font-semibold text-ink/60">
               {token.status.replace("_", " ")}
@@ -44,12 +40,12 @@ export function TokenCard({ token }: TokenCardProps) {
             {formatNumber(token.holderCount)} holders
           </span>
           <span>${formatNumber(token.marketCapUsd, { maximumFractionDigits: 0 })} mcap</span>
-          <span>{token.score ? `${formatPercent(token.score.smartWallet)} smart-wallet signal` : "score loading"}</span>
+          <span>{token.score ? `${formatPercent(token.score.smartWallet)} smart-wallet interest` : "Score warming up"}</span>
         </div>
       </div>
       <div className="flex items-center justify-between gap-4 md:justify-end">
         <ScoreRing score={token.score?.composite ?? null} />
-        <ArrowUpRight className="h-5 w-5 text-ink/50" />
+        <ArrowUpRight className="h-5 w-5 text-ink/50 transition group-hover:text-ink" />
       </div>
     </Link>
   );

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { bagsApi } from "@/lib/bags/client";
-import { compactAddress, formatNumber, formatPercent } from "@/lib/utils";
+import { formatNumber, formatPercent, formatTokenSymbol } from "@/lib/utils";
+import { AddressChip } from "@/components/address-chip";
 import { Metric } from "@/components/metric";
 import { ScoreRing } from "@/components/score-ring";
 
@@ -28,7 +29,7 @@ export default async function TokenPage({ params }: { params: { mint: string } }
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate text-4xl font-semibold md:text-6xl">{token.name}</h1>
-              <span className="rounded bg-ink px-2 py-1 text-sm font-semibold text-panel">{token.symbol}</span>
+              <span className="rounded bg-ink px-2 py-1 text-sm font-semibold text-panel">{formatTokenSymbol(token.symbol)}</span>
               {token.status ? (
                 <span className="rounded border border-ink/10 px-2 py-1 text-sm font-semibold text-ink/60">
                   {token.status.replace("_", " ")}
@@ -36,8 +37,10 @@ export default async function TokenPage({ params }: { params: { mint: string } }
               ) : null}
             </div>
             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-ink/65">
-              <span className="font-mono font-semibold text-ink">{compactAddress(token.mint, 8)}</span>
-              <span>Creator {compactAddress(token.creator, 5)}</span>
+              <AddressChip address={token.mint} chars={8} />
+              <span className="inline-flex items-center gap-1">
+                Creator <AddressChip address={token.creator} chars={5} />
+              </span>
               <a href={`https://bags.fm/${token.mint}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-ink">
                 Bags
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -66,24 +69,26 @@ export default async function TokenPage({ params }: { params: { mint: string } }
                 <span className={trade.side === "buy" ? "font-semibold text-green" : "font-semibold text-red"}>
                   {trade.side.toUpperCase()}
                 </span>
-                <span>{compactAddress(trade.buyer, 5)} moved {formatNumber(trade.solAmount, { maximumFractionDigits: 2 })} SOL</span>
+                <span className="inline-flex flex-wrap items-center gap-1">
+                  <AddressChip address={trade.buyer} chars={5} /> bought with {formatNumber(trade.solAmount, { maximumFractionDigits: 2 })} SOL
+                </span>
                 <span className="text-ink/55">{new Date(trade.timestamp).toLocaleTimeString()}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="border border-ink/10 bg-ink p-4 text-panel shadow-line">
+        <div className="border border-ink/10 bg-panel/90 p-4 text-ink shadow-line">
           <h2 className="text-lg font-semibold">Alpha Wallets</h2>
           <div className="mt-4 space-y-3">
             {wallets.slice(0, 5).map((wallet) => (
-              <div key={wallet.wallet} className="border border-panel/15 p-3">
+              <div key={wallet.wallet} className="border border-ink/10 bg-white/65 p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold">{compactAddress(wallet.wallet, 5)}</span>
+                  <AddressChip address={wallet.wallet} chars={5} />
                   <span className="text-amber">{wallet.alphaScore}</span>
                 </div>
-                <div className="mt-1 text-sm text-panel/65">
-                  {wallet.winningCalls} winning calls / {wallet.losingCalls} misses
+                <div className="mt-1 text-sm text-ink/60">
+                  {wallet.winningCalls} early winners / {wallet.losingCalls} misses
                 </div>
               </div>
             ))}
@@ -96,7 +101,7 @@ export default async function TokenPage({ params }: { params: { mint: string } }
         <div className="mt-4 grid gap-2">
           {holders.slice(0, 6).map((holder) => (
             <div key={holder.wallet} className="grid gap-2 text-sm md:grid-cols-[160px_1fr_80px] md:items-center">
-              <span className="font-semibold">{compactAddress(holder.wallet, 5)}</span>
+              <AddressChip address={holder.wallet} chars={5} />
               <div className="h-2 bg-field">
                 <div className="h-2 bg-green" style={{ width: `${Math.min(100, holder.pctSupply * 100)}%` }} />
               </div>

@@ -13,6 +13,11 @@ export function compactAddress(address: string, chars = 4) {
   return `${address.slice(0, chars)}...${address.slice(-chars)}`;
 }
 
+export function formatTokenSymbol(symbol: string) {
+  const cleanSymbol = symbol.trim();
+  return cleanSymbol.startsWith("$") ? cleanSymbol : `$${cleanSymbol}`;
+}
+
 export function formatNumber(value: number, options?: Intl.NumberFormatOptions) {
   return new Intl.NumberFormat("en-US", options).format(value);
 }

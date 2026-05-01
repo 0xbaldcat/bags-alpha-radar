@@ -29,6 +29,24 @@ a {
   text-decoration: none;
 }
 
+@keyframes highlight-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.highlight-marquee {
+  animation: highlight-scroll 42s linear infinite;
+}
+
+.highlight-marquee:hover {
+  animation-play-state: paused;
+}
+
 button,
 input {
   font: inherit;
