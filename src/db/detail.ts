@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { createDb } from "@/db/client";
 import { alerts, feeClaims, holderSnapshots, holders, scores, tokens, trades, wallets } from "@/db/schema";
 import type { BagsHolder, BagsToken, BagsTrade, TokenSnapshot, WalletSignal } from "@/lib/bags/types";
@@ -119,12 +119,27 @@ export async function getTokenSnapshotFromDb(mint: string): Promise<TokenSnapsho
   const activity = [...tradeActivity, ...claimActivity]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 8);
+  const walletKeys = walletRows.map(({ holder }) => holder.holderPk);
+  const walletObservationRows = walletKeys.length
+    ? await db
+      .select({ holderPk: holders.holderPk, mintPk: holders.mintPk })
+      .from(holders)
+      .where(inArray(holders.holderPk, walletKeys))
+    : [];
+  const observedLaunches = new Map<string, Set<string>>();
+
+  for (const row of walletObservationRows) {
+    const mints = observedLaunches.get(row.holderPk) ?? new Set<string>();
+    mints.add(row.mintPk);
+    observedLaunches.set(row.holderPk, mints);
+  }
 
   const walletSignals: WalletSignal[] = walletRows.map(({ holder, wallet }, index) => ({
     wallet: holder.holderPk,
     alphaScore: wallet ? Number(wallet.alphaScore) : Math.max(35, 70 - index * 6),
     winningCalls: wallet ? Number(wallet.nWinningCalls) : 0,
     losingCalls: wallet ? Number(wallet.nLosingCalls) : 0,
+    observedLaunches: observedLaunches.get(holder.holderPk)?.size ?? 1,
     lastActiveAt: (wallet?.lastActiveTs ?? holder.lastSeenTs).toISOString()
   }));
 

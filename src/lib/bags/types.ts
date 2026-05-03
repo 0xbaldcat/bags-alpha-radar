@@ -50,6 +50,7 @@ export type WalletSignal = {
   alphaScore: number;
   winningCalls: number;
   losingCalls: number;
+  observedLaunches?: number;
   lastActiveAt: string;
 };
 

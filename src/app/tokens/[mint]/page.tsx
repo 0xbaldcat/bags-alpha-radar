@@ -170,7 +170,7 @@ export default async function TokenPage({ params }: { params: { mint: string } }
                   <div className="mt-1 text-sm text-ink/60">
                     {hasTrackRecord
                       ? `${wallet.winningCalls} early winners / ${wallet.losingCalls} misses`
-                      : "Track record pending"}
+                      : `Seen in ${wallet.observedLaunches ?? 1} launch${(wallet.observedLaunches ?? 1) === 1 ? "" : "es"} · track record pending`}
                   </div>
                 </div>
               );
