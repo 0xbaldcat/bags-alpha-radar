@@ -20,6 +20,9 @@ export default async function TokenPage({ params }: { params: { mint: string } }
         { label: "Wallet interest", value: token.score.smartWallet, tone: "bg-red" }
       ]
     : [];
+  const holderTrend = compressHolderHistory(holderHistory);
+  const maxHolderTrend = Math.max(...holderTrend.map((item) => item.holderCount), 1);
+  const holderHistoryCopy = makeHolderHistoryCopy(holderHistory, holderTrend);
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-4 py-5 md:px-8 md:py-8">
@@ -155,17 +158,23 @@ export default async function TokenPage({ params }: { params: { mint: string } }
         <div className="border border-ink/10 bg-panel/90 p-4 text-ink shadow-line">
           <h2 className="text-lg font-semibold">Alpha Wallets</h2>
           <div className="mt-4 space-y-3">
-            {wallets.length ? wallets.slice(0, 5).map((wallet) => (
-              <div key={wallet.wallet} className="border border-ink/10 bg-white/65 p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <AddressChip address={wallet.wallet} chars={5} />
-                  <span className="text-amber">{wallet.alphaScore}</span>
+            {wallets.length ? wallets.slice(0, 5).map((wallet) => {
+              const hasTrackRecord = wallet.winningCalls + wallet.losingCalls > 0;
+
+              return (
+                <div key={wallet.wallet} className="border border-ink/10 bg-white/65 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <AddressChip address={wallet.wallet} chars={5} />
+                    <span className="text-amber">{wallet.alphaScore}</span>
+                  </div>
+                  <div className="mt-1 text-sm text-ink/60">
+                    {hasTrackRecord
+                      ? `${wallet.winningCalls} early winners / ${wallet.losingCalls} misses`
+                      : "Track record pending"}
+                  </div>
                 </div>
-                <div className="mt-1 text-sm text-ink/60">
-                  {wallet.winningCalls} early winners / {wallet.losingCalls} misses
-                </div>
-              </div>
-            )) : (
+              );
+            }) : (
               <EmptyState text="No repeated wallet pattern has been detected yet." />
             )}
           </div>
@@ -196,19 +205,20 @@ export default async function TokenPage({ params }: { params: { mint: string } }
             <h2 className="text-lg font-semibold">Holder History</h2>
           </div>
           <div className="mt-4 grid gap-3">
-            {holderHistory.length ? holderHistory.slice(0, 8).map((snapshot) => {
-              const max = Math.max(...holderHistory.map((item) => item.holderCount), 1);
-
-              return (
+            {holderTrend.length ? (
+              <>
+                {holderTrend.slice(0, 8).map((snapshot) => (
                 <div key={snapshot.timestamp} className="grid grid-cols-[76px_1fr_44px] items-center gap-2 text-xs">
                   <span className="text-ink/45">{new Date(snapshot.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                   <div className="h-2 bg-field">
-                    <div className="h-2 bg-amber" style={{ width: `${Math.max(4, (snapshot.holderCount / max) * 100)}%` }} />
+                    <div className="h-2 bg-amber" style={{ width: `${Math.max(4, (snapshot.holderCount / maxHolderTrend) * 100)}%` }} />
                   </div>
                   <span className="text-right font-mono text-ink/55">{snapshot.holderCount}</span>
                 </div>
-              );
-            }) : (
+                ))}
+                {holderHistoryCopy ? <p className="text-xs text-ink/45">{holderHistoryCopy}</p> : null}
+              </>
+            ) : (
               <EmptyState text="No historical holder checkpoints yet." />
             )}
           </div>
@@ -323,4 +333,31 @@ function humanizeNote(note: string) {
   return note
     .replaceAll("_", " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function compressHolderHistory(history: { timestamp: string; holderCount: number }[]) {
+  if (!history.length) {
+    return [];
+  }
+
+  const trend = history.filter((item, index) => index === 0 || item.holderCount !== history[index - 1].holderCount);
+
+  return trend.length ? trend : [history[0]];
+}
+
+function makeHolderHistoryCopy(
+  history: { timestamp: string; holderCount: number }[],
+  trend: { timestamp: string; holderCount: number }[]
+) {
+  if (history.length <= 1) {
+    return null;
+  }
+
+  if (trend.length === 1) {
+    return `Holder count stayed at ${trend[0].holderCount} across the last ${history.length} checkpoints.`;
+  }
+
+  const hidden = history.length - trend.length;
+
+  return hidden > 0 ? `${hidden} unchanged checkpoints hidden.` : null;
 }

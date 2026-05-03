@@ -1,6 +1,6 @@
-import { and, desc, eq, gt } from "drizzle-orm";
+import { and, desc, eq, gt, gte } from "drizzle-orm";
 import { createDb } from "@/db/client";
-import { alerts } from "@/db/schema";
+import { alerts, scores } from "@/db/schema";
 
 const ALERT_TIERS = [
   { tier: "strong", threshold: 75 },
@@ -82,6 +82,66 @@ export async function getAlertsForToken(mint: string, limit = 8) {
     .limit(limit);
 }
 
+export async function backfillCurrentScoreAlerts() {
+  const db = createDb();
+
+  if (!db) {
+    return [];
+  }
+
+  const rows: StoredAlert[] = [];
+  const scoreRows = await db
+    .select()
+    .from(scores)
+    .where(gte(scores.compositeScore, String(ALERT_TIERS[0].threshold)))
+    .orderBy(desc(scores.compositeScore));
+
+  for (const score of scoreRows) {
+    const composite = Number(score.compositeScore);
+
+    for (const config of ALERT_TIERS) {
+      if (composite < config.threshold) {
+        continue;
+      }
+
+      const existing = await db
+        .select({ id: alerts.id })
+        .from(alerts)
+        .where(and(
+          eq(alerts.mintPk, score.mintPk),
+          eq(alerts.tier, config.tier)
+        ))
+        .limit(1);
+
+      if (existing.length) {
+        continue;
+      }
+
+      const [row] = await db
+        .insert(alerts)
+        .values({
+          mintPk: score.mintPk,
+          tier: config.tier,
+          compositeScore: score.compositeScore,
+          prevCompositeScore: null,
+          threshold: String(config.threshold),
+          reason: makeBackfillReason(composite, config.threshold),
+          notesJson: score.notesJson ?? [],
+          triggeredAt: score.computedAt
+        })
+        .returning();
+
+      rows.push(row);
+    }
+  }
+
+  return rows;
+}
+
 function makeReason(score: number, threshold: number) {
   return `Score crossed ${threshold} and reached ${score}.`;
+}
+
+function makeBackfillReason(score: number, threshold: number) {
+  return `Score was already above ${threshold} when alert tracking started; current score is ${score}.`;
 }
