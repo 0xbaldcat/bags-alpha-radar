@@ -2,6 +2,7 @@ import { desc, eq, inArray, sql } from "drizzle-orm";
 import { createDb } from "@/db/client";
 import { holderSnapshots, scores, tokens } from "@/db/schema";
 import type { BagsToken, TokenLaunchFeedItem } from "@/lib/bags/types";
+import { fetchSolanaMarketData } from "@/lib/market-data";
 
 const RADAR_STATUSES = ["PRE_GRAD", "PRE_LAUNCH", "MIGRATING"];
 
@@ -42,8 +43,8 @@ export async function getRadarTokensFromDb(limit = 30): Promise<BagsToken[]> {
     creator: token.creatorPk ?? "unknown",
     launchedAt: token.launchedAt.toISOString(),
     holderCount: Number(latestHolderCount ?? 0),
-    marketCapUsd: 0,
-    liquidityUsd: 0,
+    marketCapUsd: Number(token.marketCapUsd ?? 0),
+    liquidityUsd: Number(token.liquidityUsd ?? 0),
     lifetimeFeesSol: 0,
     source: token.source === "bags_launch_feed" ? "launch-feed" : "top-fee-fixture",
     status: token.status as BagsToken["status"],
@@ -64,8 +65,16 @@ export async function upsertLaunchFeedItems(items: TokenLaunchFeedItem[]) {
   }
 
   const now = new Date();
+  const marketData = await fetchSolanaMarketData(items.map((item) => item.tokenMint)).catch((error) => {
+    console.warn("Market data refresh skipped:", error);
+    return new Map();
+  });
 
   for (const item of items) {
+    const market = marketData.get(item.tokenMint);
+    const marketCapUsd = market ? numericOrNull(market.marketCapUsd) : undefined;
+    const liquidityUsd = market ? numericOrNull(market.liquidityUsd) : undefined;
+
     await db
       .insert(tokens)
       .values({
@@ -84,6 +93,9 @@ export async function upsertLaunchFeedItems(items: TokenLaunchFeedItem[]) {
         uri: item.uri,
         dbcPoolKey: item.dbcPoolKey,
         dbcConfigKey: item.dbcConfigKey,
+        marketCapUsd,
+        liquidityUsd,
+        marketDataUpdatedAt: market?.updatedAt,
         rawLaunchJson: item,
         firstSeenAt: now,
         lastSeenAt: now,
@@ -104,6 +116,9 @@ export async function upsertLaunchFeedItems(items: TokenLaunchFeedItem[]) {
           uri: item.uri,
           dbcPoolKey: item.dbcPoolKey,
           dbcConfigKey: item.dbcConfigKey,
+          marketCapUsd,
+          liquidityUsd,
+          marketDataUpdatedAt: market?.updatedAt,
           rawLaunchJson: item,
           lastSeenAt: now,
           updatedAt: now
@@ -112,4 +127,8 @@ export async function upsertLaunchFeedItems(items: TokenLaunchFeedItem[]) {
   }
 
   return items.length;
+}
+
+function numericOrNull(value: number | null) {
+  return value === null ? null : String(value);
 }

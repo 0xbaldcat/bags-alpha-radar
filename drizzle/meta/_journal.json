@@ -29,6 +29,13 @@
       "when": 1777944931663,
       "tag": "0003_brainy_medusa",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777983537286,
+      "tag": "0004_market_data_cache",
+      "breakpoints": true
     }
   ]
 }

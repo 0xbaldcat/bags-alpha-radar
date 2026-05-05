@@ -39,7 +39,7 @@ export function TokenCard({ token }: TokenCardProps) {
             <Users className="h-4 w-4" />
             {formatNumber(token.holderCount)} holders
           </span>
-          <span>${formatNumber(token.marketCapUsd, { maximumFractionDigits: 0 })} mcap</span>
+          <span>{formatMarketCap(token.marketCapUsd)} mcap</span>
           <span>{token.score ? `${formatPercent(token.score.smartWallet)} smart-wallet interest` : "Score warming up"}</span>
         </div>
       </div>
@@ -49,4 +49,12 @@ export function TokenCard({ token }: TokenCardProps) {
       </div>
     </Link>
   );
+}
+
+function formatMarketCap(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "--";
+  }
+
+  return `$${formatNumber(value, { maximumFractionDigits: 0 })}`;
 }

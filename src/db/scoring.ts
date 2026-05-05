@@ -242,14 +242,14 @@ export async function refreshTokenAiSummaryIfNeeded(input: {
     score: input.score.composite,
     tier: tierLabel(input.score.composite),
     scoreChange24h: input.previousComposite === null || input.previousComposite === undefined
-      ? 0
+      ? null
       : input.score.composite - input.previousComposite,
     concentrationScore: input.score.concentration * 100,
     top5HolderPct: input.top5HolderPct,
     alphaWalletCount: Math.min(input.realHolders, 5),
-    alphaValueUsd: 0,
-    marketCapUsd: 0,
-    feeVelocity24h: 1,
+    alphaValueUsd: null,
+    marketCapUsd: Number(input.token.marketCapUsd ?? 0) || null,
+    feeVelocity24h: null,
     riskFlags: riskFlags(input.token),
     recentAlerts: recentAlerts.map((alert) => ({
       threshold: Number(alert.threshold),

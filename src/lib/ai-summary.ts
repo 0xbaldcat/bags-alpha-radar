@@ -10,13 +10,13 @@ export type TokenSummaryInput = {
   dataThrough: string;
   score: number;
   tier: string;
-  scoreChange24h: number;
+  scoreChange24h: number | null;
   concentrationScore: number;
   top5HolderPct: number;
   alphaWalletCount: number;
-  alphaValueUsd: number;
-  marketCapUsd: number;
-  feeVelocity24h: number;
+  alphaValueUsd: number | null;
+  marketCapUsd: number | null;
+  feeVelocity24h: number | null;
   riskFlags: string[];
   recentAlerts: {
     threshold: number;
@@ -51,24 +51,27 @@ export async function generateTokenAiSummary(input: TokenSummaryInput): Promise<
 }
 
 function buildPrompt(input: TokenSummaryInput) {
-  return `你是一个 on-chain alpha 分析师。基于下面这个 Bags.fm 创作者代币的链上数据,写一段 3-5 句话的中文分析,告诉用户当前持有人结构、风险信号和市场动能是什么状态,最后给一个明确的"建议关注度"标签(高 / 中 / 低 / 观望)。
+  return `You are an on-chain alpha analyst. Based on the Bags.fm creator-token data below, write a 3-5 sentence English brief that explains the current holder structure, risk signals, and market momentum. End with one clear watchlist tag: High / Medium / Low / Pass.
 
-硬规则:
-- 不要给价格预测,不要说"buy"/"sell"/"做多"/"做空"。
-- 不要复述数字本身,要解读数字告诉我们的事实。
-- 不要使用首句接纳类开场。直接进入事实。
-- 使用中文标点。
-- 80-130 字之间,不要列表 / 表格 / 编号。
+Rules:
+- Output English only.
+- Do not make price predictions.
+- Do not tell users to buy or sell.
+- Do not repeat every number mechanically; interpret what the data implies.
+- Do not start with filler such as "I hear you" or generic disclaimers.
+- Keep it between 70 and 120 words.
+- No bullet lists, tables, or numbered sections.
+- If a field says "not yet indexed" or "not enough history", say the dataset is still incomplete instead of treating it as a bearish signal.
 
-数据(数据时间: ${input.dataThrough}):
-- score: ${Math.round(input.score)}/100(${input.tier}),24h 变化 ${formatSigned(input.scoreChange24h)}
-- holder concentration: ${Math.round(input.concentrationScore)}/100(top 5 占 ${input.top5HolderPct.toFixed(1)}%)
-- alpha wallets: ${input.alphaWalletCount} 个持有(总价值 $${Math.round(input.alphaValueUsd).toLocaleString("en-US")})
-- market cap: $${Math.round(input.marketCapUsd).toLocaleString("en-US")},24h fee velocity ${input.feeVelocity24h.toFixed(2)}x
-- 风险旗标: ${formatRiskFlags(input.riskFlags)}
-- 过去 7 天告警: ${formatAlerts(input.recentAlerts)}
+Data through: ${input.dataThrough}
+- score: ${Math.round(input.score)}/100 (${input.tier}), 24h change ${formatDelta(input.scoreChange24h)}
+- holder concentration: ${Math.round(input.concentrationScore)}/100 (top 5 hold ${input.top5HolderPct.toFixed(1)}%)
+- alpha wallets: ${input.alphaWalletCount} observed (tracked value ${formatUsdOrUnavailable(input.alphaValueUsd)})
+- market cap: ${formatUsdOrUnavailable(input.marketCapUsd)}, 24h fee velocity ${formatRatio(input.feeVelocity24h)}
+- risk flags: ${formatRiskFlags(input.riskFlags)}
+- alerts in the last 7 days: ${formatAlerts(input.recentAlerts)}
 
-输出格式: [一句状态描述]。[一句关键信号]。[一句风险或机会的对照]。**建议关注度: X**`;
+Output format: [state sentence]. [key signal sentence]. [risk/opportunity contrast sentence]. **Watch label: X**`;
 }
 
 async function callDeepSeek(prompt: string) {
@@ -146,30 +149,50 @@ async function fetchWithTimeout(url: string, init: RequestInit) {
 
 function fallbackSummary(input: TokenSummaryInput, generatedAt: Date): TokenSummaryResult {
   return {
-    summary: withFooter("AI 摘要暂时不可用。请直接查看下方各维度详细数据。", input.dataThrough),
+    summary: withFooter("AI brief is temporarily unavailable. Use the score breakdown and holder data below for the current signal view.", input.dataThrough),
     generatedAt
   };
 }
 
 function withFooter(body: string, dataThrough: string) {
-  return `${body}\n\n*AI 自动生成,基于 ${dataThrough} 链上数据。非投资建议。*`;
+  return `${body}\n\n*AI-generated from on-chain data through ${dataThrough}. Not financial advice.*`;
 }
 
 function formatAlerts(alerts: TokenSummaryInput["recentAlerts"]) {
   if (!alerts.length) {
-    return "无";
+    return "none";
   }
 
-  const items = alerts.slice(0, 5).map((alert) => `${alert.threshold} 分跨线 (${alert.timestamp.slice(0, 10)})`);
-  return `${alerts.length} 次告警: ${items.join(", ")}`;
+  const items = alerts.slice(0, 5).map((alert) => `${alert.threshold} threshold crossed (${alert.timestamp.slice(0, 10)})`);
+  return `${alerts.length} alert${alerts.length === 1 ? "" : "s"}: ${items.join(", ")}`;
 }
 
 function formatRiskFlags(flags: string[]) {
-  return flags.length ? flags.join(", ") : "无显著旗标";
+  return flags.length ? flags.join(", ") : "no major flags";
 }
 
-function formatSigned(value: number) {
+function formatDelta(value: number | null) {
+  if (value === null || !Number.isFinite(value)) {
+    return "not enough history";
+  }
+
   return `${value >= 0 ? "+" : ""}${value.toFixed(1)}`;
+}
+
+function formatRatio(value: number | null) {
+  if (value === null || !Number.isFinite(value) || value <= 0) {
+    return "not yet indexed";
+  }
+
+  return `${value.toFixed(2)}x`;
+}
+
+function formatUsdOrUnavailable(value: number | null) {
+  if (value === null || !Number.isFinite(value) || value <= 0) {
+    return "not yet indexed";
+  }
+
+  return `$${Math.round(value).toLocaleString("en-US")}`;
 }
 
 function sleep(ms: number) {

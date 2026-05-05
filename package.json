@@ -14,6 +14,7 @@
     "ingest:launch-feed": "tsx scripts/ingest-launch-feed.ts",
     "ingest:launch-feed:loop": "tsx scripts/ingest-launch-feed.ts --loop --interval-ms 60000",
     "alerts:backfill": "tsx scripts/backfill-alerts.ts",
+    "market:backfill": "tsx scripts/backfill-market-data.ts",
     "score:recompute": "tsx scripts/recompute-scores.ts",
     "score:recompute:loop": "tsx scripts/recompute-scores.ts --loop --interval-ms 120000",
     "spike:launch-plan": "tsx scripts/launch-plan.ts"
