@@ -3,6 +3,8 @@ import { z } from "zod";
 const serverEnvSchema = z.object({
   BAGS_API_KEY: z.string().min(1).optional(),
   SOLANA_RPC_URL: z.string().url().default("https://api.mainnet-beta.solana.com"),
+  SOLANA_RPC_URL_FALLBACKS: z.string().optional(),
+  SOLANA_RPC_SKIP_PUBLIC_FALLBACK: z.coerce.boolean().default(false),
   DATABASE_URL: z.string().url().optional(),
   TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
   TELEGRAM_CHAT_ID: z.string().min(1).optional(),

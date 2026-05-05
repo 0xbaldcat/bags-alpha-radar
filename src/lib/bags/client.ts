@@ -8,6 +8,7 @@ import type { BagsHolder, BagsToken, BagsTrade, TokenLaunchFeedItem, TokenSnapsh
 const BAGS_BASE_URL = "https://public-api-v2.bags.fm/api/v1";
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qP1xzybapC8G4wEGGkZwyTDt1v";
+const RATE_LIMIT_ERROR_PATTERN = /429|too many requests|max usage reached/i;
 
 type BagsApiResponse<T> = {
   success: boolean;
@@ -18,11 +19,18 @@ type BagsApiResponse<T> = {
 export class BagsApi {
   private readonly apiKey?: string;
   private readonly connection: Connection;
+  private readonly rpcConnections: Connection[];
+  private readonly heliusRpcUrls: string[];
   readonly sdk?: BagsSDK;
 
   constructor(apiKey = env.BAGS_API_KEY) {
     this.apiKey = apiKey;
-    this.connection = new Connection(env.SOLANA_RPC_URL, "processed");
+    this.heliusRpcUrls = uniqueRpcUrls([
+      env.SOLANA_RPC_URL,
+      ...parseRpcFallbacks(env.SOLANA_RPC_URL_FALLBACKS)
+    ]);
+    this.rpcConnections = this.heliusRpcUrls.map((url) => new Connection(url, "processed"));
+    this.connection = this.rpcConnections[0] ?? new Connection(env.SOLANA_RPC_URL, "processed");
     this.sdk = apiKey ? new BagsSDK(apiKey, this.connection, "processed") : undefined;
   }
 
@@ -212,13 +220,44 @@ export class BagsApi {
         return heliusHolders;
       }
     } catch (error) {
+      if (env.SOLANA_RPC_SKIP_PUBLIC_FALLBACK && isRateLimitError(error)) {
+        console.warn("Skipping public Solana holder fallback after RPC rate limit:", formatError(error));
+        return [];
+      }
+
       console.warn("Falling back to Solana token-largest-accounts holder path:", error);
     }
 
+    return this.getLargestSystemOwnedHoldersViaStandardRpc(mint, limit);
+  }
+
+  private async getLargestSystemOwnedHoldersViaStandardRpc(mint: string, limit: number): Promise<BagsHolder[]> {
+    let lastError: unknown;
+
+    for (const connection of this.rpcConnections) {
+      try {
+        return await this.getLargestSystemOwnedHoldersFromConnection(connection, mint, limit);
+      } catch (error) {
+        lastError = error;
+
+        if (!isRateLimitError(error)) {
+          throw error;
+        }
+      }
+    }
+
+    throw lastError ?? new Error("No Solana RPC connection configured");
+  }
+
+  private async getLargestSystemOwnedHoldersFromConnection(
+    connection: Connection,
+    mint: string,
+    limit: number
+  ): Promise<BagsHolder[]> {
     const tokenMint = new PublicKey(mint);
     const [largestAccounts, supply] = await Promise.all([
-      this.connection.getTokenLargestAccounts(tokenMint, "processed"),
-      this.connection.getTokenSupply(tokenMint, "processed")
+      connection.getTokenLargestAccounts(tokenMint, "processed"),
+      connection.getTokenSupply(tokenMint, "processed")
     ]);
     const supplyAmount = Number(supply.value.amount);
 
@@ -227,7 +266,7 @@ export class BagsApi {
     }
 
     const candidateAccounts = largestAccounts.value.slice(0, limit);
-    const parsedAccounts = await this.connection.getMultipleParsedAccounts(
+    const parsedAccounts = await connection.getMultipleParsedAccounts(
       candidateAccounts.map((account) => account.address),
       { commitment: "processed" }
     );
@@ -247,7 +286,7 @@ export class BagsApi {
 
       return [{ owner, amount }];
     });
-    const ownerAccounts = await this.connection.getMultipleAccountsInfo(
+    const ownerAccounts = await connection.getMultipleAccountsInfo(
       candidates.map((candidate) => new PublicKey(candidate.owner)),
       "processed"
     );
@@ -269,7 +308,25 @@ export class BagsApi {
   }
 
   private async getHeliusTokenAccounts(mint: string, limit = 20): Promise<BagsHolder[]> {
-    const response = await fetch(env.SOLANA_RPC_URL, {
+    let lastError: unknown;
+
+    for (const url of this.heliusRpcUrls) {
+      try {
+        return await this.getHeliusTokenAccountsFromUrl(url, mint, limit);
+      } catch (error) {
+        lastError = error;
+
+        if (!isRateLimitError(error)) {
+          throw error;
+        }
+      }
+    }
+
+    throw lastError ?? new Error("No Solana RPC URL configured");
+  }
+
+  private async getHeliusTokenAccountsFromUrl(url: string, mint: string, limit = 20): Promise<BagsHolder[]> {
+    const response = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -358,6 +415,25 @@ export class BagsApi {
 
 function normalize(value: number, max: number) {
   return Math.max(0, Math.min(1, value / max));
+}
+
+function parseRpcFallbacks(value?: string) {
+  return (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function uniqueRpcUrls(urls: string[]) {
+  return [...new Set(urls.filter(Boolean))];
+}
+
+function isRateLimitError(error: unknown) {
+  return RATE_LIMIT_ERROR_PATTERN.test(formatError(error));
+}
+
+function formatError(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function statusPriority(status: TokenLaunchFeedItem["status"]) {
