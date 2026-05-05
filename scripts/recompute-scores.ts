@@ -1,6 +1,6 @@
 import { BagsApi } from "@/lib/bags/client";
 import { recordScoreAlerts } from "@/db/alerts";
-import { computeAndPersistTokenScore, getScorableTokens, loadScoreWeights } from "@/db/scoring";
+import { computeAndPersistTokenScore, getScorableTokens, loadScoreWeights, refreshTokenAiSummaryIfNeeded } from "@/db/scoring";
 
 type CliOptions = {
   limit: number;
@@ -63,10 +63,20 @@ async function runOnce(limit: number, concurrency: number) {
       notes: result.score.notes,
       triggeredAt: observedAt
     });
+    const aiSummary = await refreshTokenAiSummaryIfNeeded({
+      token,
+      score: result.score,
+      realHolders: result.realHolders,
+      top5HolderPct: result.top5HolderPct,
+      previousComposite: result.previousComposite,
+      observedAt,
+      alertCount: alerts.length
+    });
 
     return {
       ...result,
-      alerts: alerts.length
+      alerts: alerts.length,
+      aiSummary: Boolean(aiSummary)
     };
   })).flatMap((result, index) => {
     if (result.status === "fulfilled") {
@@ -88,6 +98,7 @@ async function runOnce(limit: number, concurrency: number) {
         composite: item.score.composite,
         holders: item.realHolders,
         alerts: item.alerts,
+        aiSummary: item.aiSummary,
         notes: item.score.notes
       }))
   };

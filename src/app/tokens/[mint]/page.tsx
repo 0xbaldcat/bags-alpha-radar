@@ -70,6 +70,24 @@ export default async function TokenPage({ params }: { params: { mint: string } }
         <Metric label="Lifetime fees" value={`${formatNumber(token.lifetimeFeesSol, { maximumFractionDigits: 2 })} SOL`} />
       </section>
 
+      <section className="mb-4 border border-ink/10 bg-white/80 p-4 shadow-line">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">AI Token Brief</h2>
+          {token.aiSummaryGeneratedAt ? (
+            <span className="text-xs font-semibold text-ink/45">
+              Generated {formatDateTime(token.aiSummaryGeneratedAt)}
+            </span>
+          ) : null}
+        </div>
+        {token.aiSummary ? (
+          <div className="mt-3 whitespace-pre-line text-sm leading-6 text-ink/70">
+            {token.aiSummary}
+          </div>
+        ) : (
+          <EmptyState text="AI brief will appear after the next score refresh." />
+        )}
+      </section>
+
       <section className="grid gap-4 pb-4 lg:grid-cols-[1.15fr_0.85fr]">
         <div className="border border-ink/10 bg-white/78 p-4 shadow-line">
           <div className="flex items-center justify-between gap-3">

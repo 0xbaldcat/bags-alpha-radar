@@ -1,11 +1,14 @@
 import { and, desc, eq, gte, inArray } from "drizzle-orm";
 import { createDb } from "@/db/client";
-import { holderSnapshots, holders, scores, scoreWeights, tokens } from "@/db/schema";
+import { alerts, holderSnapshots, holders, scores, scoreWeights, tokens } from "@/db/schema";
+import { generateTokenAiSummary } from "@/lib/ai-summary";
 import type { BagsHolder } from "@/lib/bags/types";
 import { computeScoreV1 } from "@/lib/scoring/v1";
 
 const SCORABLE_STATUSES = ["PRE_GRAD", "PRE_LAUNCH", "MIGRATING", "MIGRATED"];
 const BONDING_CURVE_PCT_THRESHOLD = 0.8;
+const SUMMARY_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+const SUMMARY_SCORE_JUMP_THRESHOLD = 15;
 
 export async function loadScoreWeights() {
   const db = createDb();
@@ -185,9 +188,85 @@ export async function computeAndPersistTokenScore(input: {
     symbol: input.token.symbol,
     holdersSeen: input.holders.length,
     realHolders: realHolders.length,
+    top5HolderPct: realHolders
+      .sort((a, b) => b.pctSupply - a.pctSupply)
+      .slice(0, 5)
+      .reduce((sum, holder) => sum + holder.pctSupply, 0) * 100,
     previousComposite: persisted.previousComposite,
     score
   };
+}
+
+export async function refreshTokenAiSummaryIfNeeded(input: {
+  token: Awaited<ReturnType<typeof getScorableTokens>>[number];
+  score: Awaited<ReturnType<typeof computeAndPersistTokenScore>>["score"];
+  realHolders: number;
+  top5HolderPct: number;
+  previousComposite?: number | null;
+  observedAt: Date;
+  alertCount?: number;
+}) {
+  const db = createDb();
+
+  if (!db) {
+    return null;
+  }
+
+  const tokenRow = await loadSummaryTokenRow(input.token.mintPk);
+
+  if (!tokenRow || !shouldRegenerateSummary({
+    generatedAt: tokenRow.aiSummaryGeneratedAt,
+    scoreSnapshot: tokenRow.aiSummaryScoreSnapshot,
+    currentScore: input.score.composite,
+    alertCount: input.alertCount ?? 0,
+    now: input.observedAt
+  })) {
+    return null;
+  }
+
+  const recentAlerts = await db
+    .select({
+      threshold: alerts.threshold,
+      triggeredAt: alerts.triggeredAt
+    })
+    .from(alerts)
+    .where(and(
+      eq(alerts.mintPk, input.token.mintPk),
+      gte(alerts.triggeredAt, new Date(input.observedAt.getTime() - 7 * 24 * 60 * 60 * 1000))
+    ))
+    .orderBy(desc(alerts.triggeredAt))
+    .limit(5);
+  const summary = await generateTokenAiSummary({
+    symbol: input.token.symbol,
+    dataThrough: input.observedAt.toISOString(),
+    score: input.score.composite,
+    tier: tierLabel(input.score.composite),
+    scoreChange24h: input.previousComposite === null || input.previousComposite === undefined
+      ? 0
+      : input.score.composite - input.previousComposite,
+    concentrationScore: input.score.concentration * 100,
+    top5HolderPct: input.top5HolderPct,
+    alphaWalletCount: Math.min(input.realHolders, 5),
+    alphaValueUsd: 0,
+    marketCapUsd: 0,
+    feeVelocity24h: 1,
+    riskFlags: riskFlags(input.token),
+    recentAlerts: recentAlerts.map((alert) => ({
+      threshold: Number(alert.threshold),
+      timestamp: alert.triggeredAt.toISOString()
+    }))
+  });
+
+  await db
+    .update(tokens)
+    .set({
+      aiSummary: summary.summary,
+      aiSummaryGeneratedAt: summary.generatedAt,
+      aiSummaryScoreSnapshot: Math.round(input.score.composite)
+    })
+    .where(eq(tokens.mintPk, input.token.mintPk));
+
+  return summary;
 }
 
 export async function getRecentHolderSnapshots(mint: string, since: Date) {
@@ -210,4 +289,78 @@ function defaultWeights() {
     concentration: 0.3,
     smartWallet: 0.3
   };
+}
+
+async function loadSummaryTokenRow(mint: string) {
+  const db = createDb();
+
+  if (!db) {
+    return null;
+  }
+
+  const [row] = await db
+    .select({
+      aiSummaryGeneratedAt: tokens.aiSummaryGeneratedAt,
+      aiSummaryScoreSnapshot: tokens.aiSummaryScoreSnapshot
+    })
+    .from(tokens)
+    .where(eq(tokens.mintPk, mint))
+    .limit(1);
+
+  return row ? {
+    aiSummaryGeneratedAt: row.aiSummaryGeneratedAt,
+    aiSummaryScoreSnapshot: row.aiSummaryScoreSnapshot
+  } : null;
+}
+
+function shouldRegenerateSummary(input: {
+  generatedAt: Date | null;
+  scoreSnapshot: number | null;
+  currentScore: number;
+  alertCount: number;
+  now: Date;
+}) {
+  if (!input.generatedAt || input.scoreSnapshot === null) {
+    return true;
+  }
+
+  if (input.now.getTime() - input.generatedAt.getTime() > SUMMARY_MAX_AGE_MS) {
+    return true;
+  }
+
+  if (Math.abs(input.currentScore - input.scoreSnapshot) >= SUMMARY_SCORE_JUMP_THRESHOLD) {
+    return true;
+  }
+
+  return input.alertCount > 0;
+}
+
+function tierLabel(score: number) {
+  if (score >= 90) {
+    return "critical";
+  }
+
+  if (score >= 75) {
+    return "high";
+  }
+
+  if (score >= 50) {
+    return "medium";
+  }
+
+  return "quiet";
+}
+
+function riskFlags(token: Awaited<ReturnType<typeof getScorableTokens>>[number]) {
+  const flags: string[] = [];
+
+  if (!token.dbcPoolKey) {
+    flags.push("Pool not indexed yet");
+  }
+
+  if (token.status === "PRE_GRAD") {
+    flags.push("Pre-graduation liquidity");
+  }
+
+  return flags;
 }

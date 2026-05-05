@@ -81,6 +81,8 @@ export async function getTokenSnapshotFromDb(mint: string): Promise<TokenSnapsho
     launchSignature: row.token.launchSignature,
     dbcPoolKey: row.token.dbcPoolKey,
     dbcConfigKey: row.token.dbcConfigKey,
+    aiSummary: row.token.aiSummary,
+    aiSummaryGeneratedAt: row.token.aiSummaryGeneratedAt?.toISOString(),
     score: row.score ? {
       holderGrowth: Number(row.score.holderGrowthScore),
       concentration: Number(row.score.concentrationScore),

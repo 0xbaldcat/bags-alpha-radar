@@ -18,6 +18,8 @@ export type BagsToken = {
   launchSignature?: string | null;
   dbcPoolKey?: string | null;
   dbcConfigKey?: string | null;
+  aiSummary?: string | null;
+  aiSummaryGeneratedAt?: string | null;
 };
 
 export type TokenScore = {
