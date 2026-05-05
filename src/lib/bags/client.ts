@@ -310,9 +310,12 @@ export class BagsApi {
   private async getHeliusTokenAccounts(mint: string, limit = 20): Promise<BagsHolder[]> {
     let lastError: unknown;
 
-    for (const url of this.heliusRpcUrls) {
+    for (let index = 0; index < this.heliusRpcUrls.length; index += 1) {
+      const url = this.heliusRpcUrls[index];
+      const connection = this.rpcConnections[index] ?? this.connection;
+
       try {
-        return await this.getHeliusTokenAccountsFromUrl(url, mint, limit);
+        return await this.getHeliusTokenAccountsFromUrl(connection, url, mint, limit);
       } catch (error) {
         lastError = error;
 
@@ -325,7 +328,12 @@ export class BagsApi {
     throw lastError ?? new Error("No Solana RPC URL configured");
   }
 
-  private async getHeliusTokenAccountsFromUrl(url: string, mint: string, limit = 20): Promise<BagsHolder[]> {
+  private async getHeliusTokenAccountsFromUrl(
+    connection: Connection,
+    url: string,
+    mint: string,
+    limit = 20
+  ): Promise<BagsHolder[]> {
     const response = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -366,7 +374,7 @@ export class BagsApi {
 
       return [{ owner: account.owner, amount }];
     });
-    const ownerAccounts = await this.connection.getMultipleAccountsInfo(
+    const ownerAccounts = await connection.getMultipleAccountsInfo(
       candidates.map((candidate) => new PublicKey(candidate.owner)),
       "processed"
     );
