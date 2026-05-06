@@ -72,7 +72,10 @@ export default async function TokenPage({ params }: { params: { mint: string } }
 
       <section className="mb-4 border border-ink/10 bg-white/80 p-4 shadow-line">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold">AI Token Brief</h2>
+          <div>
+            <h2 className="text-lg font-semibold">AI Verdict</h2>
+            <p className="mt-1 text-sm text-ink/50">One-paragraph synthesis from DeepSeek.</p>
+          </div>
           {token.aiSummaryGeneratedAt ? (
             <span className="text-xs font-semibold text-ink/45">
               Generated {formatDateTime(token.aiSummaryGeneratedAt)}

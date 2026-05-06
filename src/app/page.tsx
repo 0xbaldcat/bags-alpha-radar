@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, ArrowUpRight, BellRing, BrainCircuit, Database, RadioTower } from "lucide-react";
+import { Activity, ArrowUpRight, BellRing, BrainCircuit, Database, RadioTower, Sparkles } from "lucide-react";
 import { detectAlert } from "@/lib/alerts/detector";
 import { bagsApi } from "@/lib/bags/client";
 import type { BagsToken } from "@/lib/bags/types";
@@ -45,11 +45,23 @@ export default async function HomePage() {
             AI-powered on-chain radar
           </div>
           <h1 className="mt-2 max-w-3xl text-4xl font-semibold leading-tight md:text-6xl">
-            AI briefs for Bags launches before the crowd catches up.
+            BagsRadar — AI on-chain alpha radar for Bags.fm
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-ink/62 md:text-lg">
-            BagsRadar blends holder concentration, alert history, market data, and DeepSeek-powered briefs into one launch-intelligence feed.
+            DeepSeek synthesizes holder concentration, alpha wallet activity, risk flags, and market momentum into a one-paragraph verdict for every Bags creator token. Watchlist call included.
           </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1 rounded bg-ink px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-panel">
+              <Sparkles className="h-3.5 w-3.5 text-amber" />
+              AI-Powered
+            </span>
+            <span className="rounded border border-ink/10 bg-white/75 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink/60">
+              Powered by DeepSeek
+            </span>
+            <span className="rounded border border-ink/10 bg-white/75 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink/60">
+              Live On-Chain
+            </span>
+          </div>
         </div>
         <div className="grid gap-2 self-start md:self-auto">
           <div className="flex items-center gap-2 border border-ink/10 bg-white/75 px-3 py-2 text-sm font-semibold">
