@@ -48,7 +48,7 @@ export default async function HomePage() {
             BagsRadar — AI on-chain alpha radar for Bags.fm
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-ink/62 md:text-lg">
-            DeepSeek synthesizes holder concentration, alpha wallet activity, risk flags, and market momentum into a one-paragraph verdict for every Bags creator token. Watchlist call included.
+            AI-synthesized verdicts from holder concentration, alpha wallet activity, risk flags, and market momentum — one paragraph plus a watchlist call for every Bags creator token.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1 rounded bg-ink px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-panel">
@@ -56,17 +56,17 @@ export default async function HomePage() {
               AI-Powered
             </span>
             <span className="rounded border border-ink/10 bg-white/75 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink/60">
-              Powered by DeepSeek
+              Live On-Chain
             </span>
             <span className="rounded border border-ink/10 bg-white/75 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink/60">
-              Live On-Chain
+              Watchlist Call
             </span>
           </div>
         </div>
         <div className="grid gap-2 self-start md:self-auto">
           <div className="flex items-center gap-2 border border-ink/10 bg-white/75 px-3 py-2 text-sm font-semibold">
             <BrainCircuit className="h-4 w-4 text-amber" />
-            DeepSeek briefs live
+            AI verdicts live
           </div>
           <div className="flex items-center gap-2 border border-ink/10 bg-white/75 px-3 py-2 text-sm font-semibold">
             <Database className="h-4 w-4" />

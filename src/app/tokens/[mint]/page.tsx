@@ -74,7 +74,7 @@ export default async function TokenPage({ params }: { params: { mint: string } }
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-lg font-semibold">AI Verdict</h2>
-            <p className="mt-1 text-sm text-ink/50">One-paragraph synthesis from DeepSeek.</p>
+            <p className="mt-1 text-sm text-ink/50">One-paragraph synthesis from live token signals.</p>
           </div>
           {token.aiSummaryGeneratedAt ? (
             <span className="text-xs font-semibold text-ink/45">
@@ -186,7 +186,9 @@ export default async function TokenPage({ params }: { params: { mint: string } }
                 <div key={wallet.wallet} className="border border-ink/10 bg-white/65 p-3">
                   <div className="flex items-center justify-between gap-3">
                     <AddressChip address={wallet.wallet} chars={5} />
-                    <span className="text-amber">{wallet.alphaScore}</span>
+                    <span className="rounded bg-amber/10 px-2 py-1 text-xs font-semibold text-amber">
+                      Signal {wallet.alphaScore}
+                    </span>
                   </div>
                   <div className="mt-1 text-sm text-ink/60">
                     {hasTrackRecord
