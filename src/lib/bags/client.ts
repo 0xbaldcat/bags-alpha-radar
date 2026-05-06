@@ -74,6 +74,7 @@ export class BagsApi {
         marketCapUsd: tokenInfo?.mcap ?? tokenInfo?.fdv ?? 0,
         liquidityUsd: tokenInfo?.liquidity ?? 0,
         lifetimeFeesSol: Number(item.lifetimeFees ?? 0) / 1_000_000_000,
+        lifetimeFeesIndexed: true,
         score: {
           holderGrowth,
           concentration,
@@ -109,6 +110,7 @@ export class BagsApi {
         marketCapUsd: 0,
         liquidityUsd: 0,
         lifetimeFeesSol: 0,
+        lifetimeFeesIndexed: false,
         source: "launch-feed",
         status: item.status,
         score: null
@@ -118,6 +120,15 @@ export class BagsApi {
 
   async getLaunchFeedItems(): Promise<TokenLaunchFeedItem[]> {
     return this.raw<TokenLaunchFeedItem[]>("/token-launch/feed");
+  }
+
+  async getTokenLifetimeFeesSol(mint: string): Promise<number | null> {
+    if (!this.sdk) {
+      return null;
+    }
+
+    const lamports = await this.sdk.state.getTokenLifetimeFees(new PublicKey(mint));
+    return Number(lamports) / 1_000_000_000;
   }
 
   async getRadarTokens(): Promise<BagsToken[]> {

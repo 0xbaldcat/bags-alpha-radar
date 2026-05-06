@@ -17,6 +17,8 @@ export const tokens = pgTable("tokens", {
   dbcPoolKey: text("dbc_pool_key"),
   dbcConfigKey: text("dbc_config_key"),
   feeConfigJson: text("fee_config_json"),
+  lifetimeFeesSol: numeric("lifetime_fees_sol"),
+  lifetimeFeesUpdatedAt: timestamp("lifetime_fees_updated_at", { withTimezone: true }),
   marketCapUsd: numeric("market_cap_usd"),
   liquidityUsd: numeric("liquidity_usd"),
   marketDataUpdatedAt: timestamp("market_data_updated_at", { withTimezone: true }),

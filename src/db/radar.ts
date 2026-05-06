@@ -45,7 +45,8 @@ export async function getRadarTokensFromDb(limit = 30): Promise<BagsToken[]> {
     holderCount: Number(latestHolderCount ?? 0),
     marketCapUsd: Number(token.marketCapUsd ?? 0),
     liquidityUsd: Number(token.liquidityUsd ?? 0),
-    lifetimeFeesSol: 0,
+    lifetimeFeesSol: Number(token.lifetimeFeesSol ?? 0),
+    lifetimeFeesIndexed: Boolean(token.lifetimeFeesUpdatedAt),
     source: token.source === "bags_launch_feed" ? "launch-feed" : "top-fee-fixture",
     status: token.status as BagsToken["status"],
     score: score ? {

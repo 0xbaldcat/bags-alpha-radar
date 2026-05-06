@@ -36,6 +36,13 @@
       "when": 1777983537286,
       "tag": "0004_market_data_cache",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778073398120,
+      "tag": "0005_lifetime_fees_cache",
+      "breakpoints": true
     }
   ]
 }

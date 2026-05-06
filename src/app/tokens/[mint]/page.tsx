@@ -67,7 +67,7 @@ export default async function TokenPage({ params }: { params: { mint: string } }
         <Metric label="Holder growth" value={token.score ? formatPercent(token.score.holderGrowth) : "--"} />
         <Metric label="Concentration" value={token.score ? formatPercent(token.score.concentration) : "--"} />
         <Metric label="Smart wallets" value={token.score ? formatPercent(token.score.smartWallet) : "--"} />
-        <Metric label="Lifetime fees" value={`${formatNumber(token.lifetimeFeesSol, { maximumFractionDigits: 2 })} SOL`} />
+        <Metric label="Lifetime fees" value={formatLifetimeFees(token.lifetimeFeesSol, token.lifetimeFeesIndexed)} />
       </section>
 
       <section className="mb-4 border border-ink/10 bg-white/80 p-4 shadow-line">
@@ -322,6 +322,14 @@ function formatDateTime(value: string) {
     hour: "2-digit",
     minute: "2-digit"
   });
+}
+
+function formatLifetimeFees(value: number, indexed?: boolean) {
+  if (!indexed || !Number.isFinite(value)) {
+    return "-- SOL";
+  }
+
+  return `${formatNumber(value, { maximumFractionDigits: 2 })} SOL`;
 }
 
 function formatAge(value: string) {

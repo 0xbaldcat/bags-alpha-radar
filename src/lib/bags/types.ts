@@ -9,6 +9,7 @@ export type BagsToken = {
   marketCapUsd: number;
   liquidityUsd: number;
   lifetimeFeesSol: number;
+  lifetimeFeesIndexed?: boolean;
   score: TokenScore | null;
   source: "launch-feed" | "top-fee-fixture" | "mock";
   status?: "PRE_LAUNCH" | "PRE_GRAD" | "MIGRATING" | "MIGRATED";
