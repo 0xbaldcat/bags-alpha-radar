@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, ArrowUpRight, BellRing, Database, RadioTower } from "lucide-react";
+import { Activity, ArrowUpRight, BellRing, BrainCircuit, Database, RadioTower } from "lucide-react";
 import { detectAlert } from "@/lib/alerts/detector";
 import { bagsApi } from "@/lib/bags/client";
 import type { BagsToken } from "@/lib/bags/types";
@@ -42,15 +42,24 @@ export default async function HomePage() {
         <div>
           <div className="flex items-center gap-2 text-sm font-semibold uppercase text-ink/60">
             <RadioTower className="h-4 w-4" />
-            BagsRadar
+            AI-powered on-chain radar
           </div>
           <h1 className="mt-2 max-w-3xl text-4xl font-semibold leading-tight md:text-6xl">
-            Early signal for Bags token launches.
+            AI briefs for Bags launches before the crowd catches up.
           </h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-ink/62 md:text-lg">
+            BagsRadar blends holder concentration, alert history, market data, and DeepSeek-powered briefs into one launch-intelligence feed.
+          </p>
         </div>
-        <div className="flex items-center gap-2 self-start border border-ink/10 bg-white/75 px-3 py-2 text-sm font-semibold md:self-auto">
-          <Database className="h-4 w-4" />
-          {mode}
+        <div className="grid gap-2 self-start md:self-auto">
+          <div className="flex items-center gap-2 border border-ink/10 bg-white/75 px-3 py-2 text-sm font-semibold">
+            <BrainCircuit className="h-4 w-4 text-amber" />
+            DeepSeek briefs live
+          </div>
+          <div className="flex items-center gap-2 border border-ink/10 bg-white/75 px-3 py-2 text-sm font-semibold">
+            <Database className="h-4 w-4" />
+            {mode}
+          </div>
         </div>
       </header>
 

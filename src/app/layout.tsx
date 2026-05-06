@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "BagsRadar",
-  description: "Real-time alpha radar for Bags token launches."
+  description: "AI-powered on-chain alpha radar for Bags token launches."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
